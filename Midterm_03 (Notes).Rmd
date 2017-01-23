@@ -1,0 +1,66 @@
+---
+title: "Some Notes about R markdown"
+author: Yun-Lung Wang
+date: 2017.1.19 [278 term]
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    number_sections: FALSE
+    theme: yeti
+    highlight: pygments
+    self_contained: No
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Title設定值
+| `---`
+| title: "Some Notes about R markdown"
+| author: Yun-Lung Wang
+| date: 2017.1.19 [278 term]
+| output: 
+|   html_document:
+|     toc: TRUE
+|     toc_depth: 3
+|     number_sections: FALSE
+|     theme: yeti
+|     highlight: pygments
+|     self_contained: No
+| `---`
+
+---
+
+## 以下僅適用於文字範圍(testarea)
+
+- 超連結   
+    - 顯示網址方法：   
+`<http://rmarkdown.rstudio.com>` => <http://rmarkdown.rstudio.com>    
+    - 或者，隱藏超連結在字串內之方法：   
+`[CRAN](https://cran.r-project.org/index.html)` => [CRAN](https://cran.r-project.org/index.html)
+- 圖片
+    - `![炸香蕉](C:/Users/USER/Pictures/fried_banana.jpg)`    
+![炸香蕉](C:/Users/USER/Pictures/fried_banana.jpg)
+- 表格 參考[Pandoc Markdown](http://rmarkdown.rstudio.com/authoring_pandoc_markdown.html#pandoc_markdown)
+- 雙刪線
+    - `~~Knit~~` => ~~Knit~~
+- 斜體
+    - `*document*` => *document*
+- 粗體
+    - `**generated**` => **generated**
+- 底線
+    - `<span style="text-decoration:underline">this is underline!</span>`</p>=> <span style="text-decoration:underline">this is underline!</span>
+- 同行改變Pattern
+    - `<span style="color: #f2cf4a; font-family: Babas; font-size: 2em">INSPIRATION DAY</span>`</p>=> <span style="color: #f2cf4a; font-family: Babas; font-size: 2em">INSPIRATION DAY</span>
+
+
+---
+
+## Notes
+1. **toc**表示建立目錄連結；**toc_depth**：決定目錄樹狀圖的層級深度，對應標題的#數目。
+2. **self_contained**其Default=Yes。選擇*No*時，可以解決**error 67**。<br />當我們複製R Markdown檔至其他電腦的RStudio操作、或不小心刪除某些和R Markdown有關檔案，ex: 對應之HTML檔時，RStudio會找不到原先電腦的設定環境，並出現中文亂碼、圖片連結不到...等，且無法Knit。而設定"No"後，新電腦會在該R Markdown檔同一資料夾建立一個同名資料夾，存放這些設定，爾後就可以正常編寫和Knit了！
+3. 有些theme無法在RStudio環境顯示斜體和粗體，即使HTML檔案正常。
+4. Title設定區域有亂碼就無法Knit。
+5. 分隔線：需要前後列皆空白，否則會被認為是表格或標題結構一部份。
+6. "testarea"（包含：標題、一般文字書寫、引用、行區塊）內可以使用的文字修飾無法使用在其他範圍，ex: 程式碼區等。
