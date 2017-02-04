@@ -1,0 +1,287 @@
+---
+title: "Final Report: Prediction of Survival of Passengers in Titanic with other messages"
+author: 王韵倫
+date: 2017.1.31 [278期]
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    number_sections: FALSE
+    theme: united
+    highlight: pygments
+    md_extensions: -ascii_identifiers
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+*<span style="color: #0000cd; font-family: SimSun; font-size: 12.5pt">Final Report為R程式設計班[278期]期末作業。本次報告將以線上Toy dataset：[Titanic: Machine Learning from Disaster](https://www.kaggle.com/c/titanic/data)內，去除乘客存活記錄之[test](https://www.kaggle.com/c/titanic/download/test.csv)資料，經資料匯入與觀察、資料整理：處理缺失數據（Missing values）、建立預測模型、產生預測值、整理預測值、檢查資料與上傳，以及最後回傳預測結果準確率，完成資料分析習作，並以GitHub Page呈現。</span>*
+
+---
+
+## 1. 資料匯入與觀察
+### 1.1 匯入線上Toy dataset：test
+
+以`read.csv()`讀取位於url遠端的.csv檔「test」，並指派該資料框為「Test」。
+
+```{r url, echo=TRUE}
+url <- "https://storage.googleapis.com/py_ds_basic/kaggle_titanic_test.csv"
+Test <- read.csv(url)
+```
+
+此步驟完成後，已將線上資料讀入RStudio，但此時並不知道此資料有多少待測筆數或任何結構，貿然直接輸入`Test`叫喚資料也許會洗版Console...，故需以部分函數對資料進行觀察。
+
+### 1.2 資料觀察 
+#### 1.2.1 `str()`與`summary()`
+首先，必需知道Test資料框內組成資料的「結構」，因此使用`str()`查看。
+
+```{r str, echo=TRUE}
+str(Test)
+```
+
+`str()`可以得知組成資料之稱呼、筆數、類型及記錄概況。在Test中，總共有418列待預測乘客總數，11個欄位記錄乘客的不同資訊（ex：ID、Name、Sex、Age、Fare...等）。此外，亦可以得知每種資訊屬於哪一種資料類型（ex：integer、factor、numeric）。
+<br />不過，若想知道組成資料的「統計資訊」，就得使用`summary()`。
+
+```{r summary, echo=TRUE}
+summary(Test)
+```
+
+`summary()`會對組成資料進行概略統計或計數。此步驟除了藉由統計結果觀察資料分布外，需確認各欄位總筆數並觀察有無資料記錄不全處（"Missing values"），通常記錄為「NA（Not Available）」或不尋常之空格。在Test中，發現Age欄位有86個NA，Fare欄位有1個NA。
+
+---
+
+## 2. 資料整理：處理缺失數據（Missing values）
+
+根據[R筆記–(10)遺漏值處理(Impute Missing Value)](https://rpubs.com/skydome20/R-Note10-Missing_Value)敘述，常用來處理資料框內缺失數據（通常記錄為NA）的方法為：
+<br />
+(1). 直接刪除含缺失數據之樣本。<br />
+(2). 以平均數、中位數、眾數、第一四分位數...等統計上可以代表樣本群之數值來填補。<br />
+(3). K-Nearest Neighbours(KNN)法進行填補。<br />
+(4). Multivariate Imputation via Chained Equations (MICE)法進行填補。<br />
+由上課練習過(1)、(2)之經驗可得知，(1)對預測之負面影響為減少觀測總樣本數，使含有NA之樣本的其他有記錄觀測值無法貢獻於預測上；(2)之負面影響則是，統計數值或許和原始應位於NA位置的值相差甚遠，而無法代表之。上述影響都可能進一步造成預測失誤，尤其當NA值眾多時。
+
+因此，「如何藉由記錄完整之訊息，推估NA可能值」便成為其他填補NA方法發展的概念。<br />
+本次報告將使用(3)、(4)進行NA填補練習，並比較兩種方式是否影響預測結果。
+
+### 2.1 K-Nearest Neighbours(KNN)
+#### 2.1.1 原理概述
+
+參考KNN的[Wiki](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm)。<br />
+另外，引述[R筆記–(10)遺漏值處理(Impute Missing Value)](https://rpubs.com/skydome20/R-Note10-Missing_Value)對KNN概念之描述：
+
+> <span style="color: #708090; font-family: Dotum; font-size: 10pt">現在有一群學生的成績，包含國文、數學、自然，但老師不小心弄丟小明的國文考卷，於是小明的「國文」分數是遺漏值。如果在不重考的狀況下，我們要給小明一個分數，該怎麼做？<br />KNN的概念告訴我們，應該先看小明「數學和自然」的分數，看和哪些同學(K位)很相近，然後再拿那些同學(K位)的國文分數，取平均或加權平均(或是其他手法)後，當作小明的分數來填補。<br />一句話概括：「就是找和自己很像的K個鄰居，然後從他們身上複製自己所沒有的東西。」</span>
+
+#### 2.1.2 實際操作
+
+匯入Package「DMwR」，使用`knnImputation()`填補NA，並指派受KNN處理過的新資料框為「KNN_Test」。<br />
+附帶一提，[DMwR使用說明](https://cran.r-project.org/web/packages/DMwR/DMwR.pdf)中，`knnImputation()`之Arguments為5個。在此則不更改任何預設值進行填補。
+
+```{r KNN, echo=TRUE, message=FALSE}
+library("DMwR", lib.loc="~/R/win-library/3.3")
+KNN_Test <- knnImputation(Test)
+```
+
+觀察KNN_Test資料框內NA是否填補成功。
+
+```{r KNN_summary, echo=TRUE, message=FALSE}
+summary(KNN_Test)
+```
+
+由此summary結果可發現，原先Test資料框內Age與Fare欄位所有NA被填補完成，即KNN_Test資料框所有欄位皆有418列觀測值且無NA。
+
+### 2.2 Multivariate Imputation via Chained Equations (MICE)
+#### 2.2.1 原理概述
+
+參考Imputation[Wiki](https://en.wikipedia.org/wiki/Imputation_(statistics))內的*2.2 Multiple imputation*。<br />
+同樣引述[R筆記–(10)遺漏值處理(Impute Missing Value)](https://rpubs.com/skydome20/R-Note10-Missing_Value)對MICE概念之描述：
+
+> <span style="color: #708090; font-family: Dotum; font-size: 10pt">概念很簡單：現在我們有欄位V1,V2,V3……Vn，每個欄位裡面都有遺漏值。<br />當我們要填補V1的遺漏值時，就先把V2,V3……Vn的欄位當作自變數(X)，把V1當作應變數(Y)，並且進行建模，然後用預測的結果來填補V1的遺漏值。<br />同理，針對V2，就用V1,V3……Vn建模，然後用預測的結果來填補V2的遺漏值。<br />(由於這個函式，背後有使用Gibbs sampling(一種抽樣手法)。所以，即使使用某個模型進行遺漏值填補，也會因為抽樣手法，造成最後填補的結果有些許不同)</span>
+
+#### 2.2.2 實際操作
+
+匯入Package「mice」，使用`mice()`填補NA，並指派受mice處理過的新資料框為「MICE_Test」。<br />
+`mice()`詳細各Arguments介紹可參考這篇[RDocumentation](https://www.rdocumentation.org/packages/mice/versions/2.25/topics/mice)。看起來比KNN複雜許多 @@a，總之先練習操作看看。<br />
+按照「R筆記–(10)遺漏值處理(Impute Missing Value)」上程式步驟如下：
+
+| <span style="color: #2e8b57; font-size: 10pt">MICE_Test <- mice(Test,</span>
+|                   <span style="color: #2e8b57; font-size: 10pt">m = 3,           # 產生三個被填補好的資料表</span>
+|                   <span style="color: #2e8b57; font-size: 10pt">maxit = 50,      # max iteration</span>
+|                   <span style="color: #2e8b57; font-size: 10pt">method = "cart", # 使用CART決策樹，進行遺漏值預測</span>
+|                   <span style="color: #2e8b57; font-size: 10pt">seed = 188)      # set.seed()，令抽樣每次都一樣</span>
+
+Dear，如果就這樣開始跑程式，不管是在Console還是Knit，你就會發現電腦 **<span style="color: #ff0000; font-size: 18pt">動.不.了.啦！！！<span/>**<br />
+雖然尚未詳細看完和理解所有文獻，但有點近似此意思：電腦不動並不是當機，而是因為`mice()`在填補NA時使用的建模原理會牽扯所有其他記錄完整的觀測值進行運算...嗯！光用想的就算不完~~，網路上查到還有苦主擺了一個晚上仍未果，科科~~。<br />所以，我們改以下步驟，**先約束建模用的觀測值數目，再完成填補**。
+
+##### 2.2.2.1 約束建模所需觀測值
+
+首先，先**人工**判斷那些觀測值種類與Age、Fare之NA可能值預測較相關。在此認定流水號類型記錄值--「PassenerId」、「Name」、「Ticket」、「Cabin」--應和預測無關，故建立一字串型向量，以便之後函數使用。
+
+```{r exclude, echo=TRUE, message=FALSE}
+exclude_Test <- c("PassenerId","Name","Ticket","Cabin")
+```
+
+##### 2.2.2.2 使用`mice()`
+匯入Package「mice」，使用`mice()`對Age、Fare之NA進行可能值運算，並將結果指派為「pre_MICE_Test」。
+
+```{r MICE1, echo=TRUE, message=FALSE, results='hide'}
+library("mice", lib.loc="~/R/win-library/3.3")
+pre_MICE_Test <- mice(Test, 
+                      pred=quickpred(Test, minpuc=0.9, exclude = exclude_Test),
+                      seed = 87) # 使用班級幸運數字固定每次抽樣預測之結果XD
+```
+
+其中，`quickpred()`屬於mice package，其計算兩種觀測變數間（ex: Name vs. Age）是否相關並將結果以`predictorMatrix`呈現。而該Matrix可直接作為`mice()`Argument「predictorMatrix（簡稱"pred"）」之值，用來約束`mice()`建模運算NA時，考量的觀測值種類數。<br />
+其他Arguments本次使用到minpuc、exclude。exclude即直接設定不考量的觀測值種類；minpuc則指「the minimum threshold(s) for the proportion of usable cases」，範例顯示，一般用在`mice()`給0.25，此給0.9。<br />
+呼叫「pre_MICE_Test」及使用`class()`，觀察其結果含哪些資訊：
+
+``` {r MICE2,echo=TRUE, message=FALSE}
+pre_MICE_Test
+class(pre_MICE_Test)
+```
+
+pre_MICE_Test屬於`mids`種類之物件，意指「由`mice()`產生的multiply imputed data set」。`mids`內有許多建模運算NA相關資訊（可參考[mice package說明書](https://cran.r-project.org/web/packages/mice/mice.pdf)第41頁），值得一提的是Argument「VisitSequence」，若按照其中數字作為index直接呼叫：
+
+``` {r MICE3,echo=TRUE, message=FALSE}
+pre_MICE_Test[5]
+```
+
+~~抱歉，我不清楚套入Fare下方數字後，叫出的pre_MICE_Test[9]是做什麼用的 @@|||~~可以發現NA可能值在Age、Fare欄位之預測結果，而不改任何預設值下，所有NA皆將皆有5次預測結果。但到此步，我們仍尚未選定到底哪一次結果真正去填補NA。
+
+##### 2.2.2.3 使用`complete()`形成NA填補後的資料框
+
+**人工**觀察後，我傾向使用第3組資料。
+
+```{r complete, echo=TRUE, message=FALSE}
+library("mice", lib.loc="~/R/win-library/3.3")
+MICE_Test <- complete(pre_MICE_Test, 3) # 使用第3組NA可能值預測結果
+
+```
+
+觀察MICE_Test資料框內NA是否填補成功。
+
+```{r MICE_summary, echo=TRUE, message=FALSE}
+summary(MICE_Test)
+```
+
+由此summary結果可發現，原先Test資料框內Age與Fare欄位所有NA被填補完成，即MICE_Test資料框所有欄位皆有418列觀測值且無NA。
+
+---
+
+## 3. 預測模型建立與產生預測值 
+
+想了解Titanic上不同條件是否會影響乘客存活率，或存活僅只幸運，可以採取填補好NA之其他觀測值欄位，對存活與否進行預測。
+
+### 3.1 預測模型建立：存活與否 
+
+本次使用「決策樹（Decision tree）」運算方式進行預測。<br />
+然而，所謂預測模型是指電腦曾經同樣以其他變數對待測變數進行過預測。因此，需要一個有Survived欄位的Titanic資料框給電腦建立預測模型。<br />
+故下述參考課堂流程，讀取相同線上Toy dataset內[train](https://www.kaggle.com/c/titanic/download/train.csv)資料框，直接去除含有NA列數、以眾數「S」填補未記錄上船港口，並轉換Survived欄位記錄值類型為Factor，再指派該資料框為「titanic」。
+
+```{r titanic, echo=TRUE, message=FALSE}
+titanic <- read.csv("https://storage.googleapis.com/2017_ithome_ironman/data/kaggle_titanic_train.csv")
+# 直接去除含有NA之列數
+titanic <- titanic[complete.cases(titanic), ]
+# 以眾數"S"填補未記錄上船港口
+titanic$Embarked <- as.character(titanic$Embarked)
+titanic$Embarked[titanic$Embarked == ""] <- "S"
+titanic$Embarked <- factor(titanic$Embarked)
+# 轉換Survived欄位記錄值類型為Factor
+titanic$Survived <- factor(titanic$Survived)
+# 觀察更動後的titanic
+summary(titanic)
+class(titanic$Survived)
+```
+
+`summary()`結果，可以確定titanic資料框沒有NA，且Survived欄位記錄值類型以轉換成Factor。<br />
+接著，匯入Package「rpart」，使用`rpart()`對titanic中的Survived觀測值建立決策樹預測模型。
+
+```{r rpart, echo=TRUE, message=FALSE}
+library("rpart", lib.loc="~/R/win-library/3.3")
+rpart_model <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked,
+                     # "~"前放置待預測變數，後放置想加入預測用的變數，彼此欄位名稱以"+"相連。
+                     data = titanic,
+                     method = "class") 
+                     # method = "class"代表請函數判斷待預測之Survived為factor類型。
+```
+
+### 3.2 產生預測值 
+
+使用Package「rpart」中`predict()`分別對KNN法填補NA後的「KNN_Test」和MICE法的「MICE_Test」兩資料框進行每列Survived欄位可能數值之預測，並指派結果為「KNN_pred」及「MICE_pred」。
+
+```{r predict, echo=TRUE, message=FALSE,warning=FALSE}
+library("rpart", lib.loc="~/R/win-library/3.3")
+# KNN的部分
+KNN_pred <- predict(rpart_model, 
+                    newdata = KNN_Test[, c("Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked")],
+                    type = "class")
+# MICE的部分
+MICE_pred <- predict(rpart_model, 
+                    newdata = MICE_Test[, c("Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked")],
+                    type = "class")
+```
+
+檢視一下部分預測結果：
+
+```{r head,echo=TRUE,message=FALSE}
+head(KNN_pred,n = 10)
+head(MICE_pred,n = 10)
+```
+
+---
+
+## 4. 上傳 
+
+將預測結果結合原本KNN_Test與MICE_Test資料框內的PassengerId欄位，產生新資料框--「KNN_Test_Sur」及「MICE_Test_Sur」供上傳。
+
+```{r merge,echo=TRUE,message=FALSE}
+KNN_Test_Sur <- data.frame(KNN_Test[, "PassengerId"], KNN_pred)
+names(KNN_Test_Sur) <- c("PassengerId", "Survived")
+head(KNN_Test_Sur, n = 10)
+
+MICE_Test_Sur <- data.frame(MICE_Test[, "PassengerId"], MICE_pred)
+names(MICE_Test_Sur) <- c("PassengerId", "Survived")
+head(MICE_Test_Sur, n = 10)
+```
+
+匯出上述結果成.csv檔，供Kaggle競賽上傳。
+
+```{r write,echo=TRUE,message=FALSE}
+write.csv(KNN_Test_Sur, file = "KNN_Test_Sur.csv", row.names = FALSE)
+write.csv(MICE_Test_Sur, file = "MICE_Test_Sur.csv", row.names = FALSE)
+```
+
+---
+
+## 5. Kaggle結果 
+
+預測結果經Kaggle比對後，回報準確率為**<span style="color: #ff0000; font-size: 18pt">0.78469<span/>**。<br />
+有趣的是，兩種填補NA方式，最後呈現的準確率卻相同。
+![KNN_Test_Sur](https://scontent-tpe1-1.xx.fbcdn.net/v/t1.0-9/16427638_10211706722166252_4441051755190182667_n.jpg?oh=395eb89a5d9162d306ce6b149efd1531&oe=593DE70C)
+![MICE_Test_Sur](https://scontent-tpe1-1.xx.fbcdn.net/v/t1.0-9/16473367_10211706722206253_2432147798612209523_n.jpg?oh=a938a742900fd2dce856f295717a52f7&oe=59085495)
+
+---
+
+## 6. 總結 
+
+從本次資料分析實戰流程，可以整理出以下操作變因：
+
+- NA填補的方式（資料整理）
+  - 統計數字
+  - KNN
+  - MICE
+    - 選擇哪些變數用以建模
+  - （其他）
+- 預測模型之建立
+  - 使用哪些資料給電腦建模。<br />
+    如果那些資料需要整理，又以那些方式填補NA
+  - 使用哪個建模方式
+    - 決策樹（Decision tree）
+    - 隨機森林模型（Random forest）
+    - （其他）
+      - 每個模型又各自有不同的變數可選擇...
+
+觀察KNN_Test與MICE_Test中Age在填補NA後，各項統計數值可推知兩者在本次整理資料後結果相似。而Age又是NA值最多、最可能影響資料結構在整理後之變數。所以或許由於此緣故，本次兩組資料整理方法的預測結果完全相同！<br />
+
