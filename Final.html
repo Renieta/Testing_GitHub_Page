@@ -669,7 +669,8 @@ MICE_pred &lt;-<span class="st"> </span><span class="kw">predict</span>(rpart_mo
 <h2>6. 總結</h2>
 <p>從本次資料分析實戰流程，可以整理出以下操作變因：</p>
 <ul>
-<li>NA填補的方式（資料整理）</li>
+<li>NA填補的方式（資料整理）
+<ul>
 <li>統計數字</li>
 <li>KNN</li>
 <li>MICE
@@ -677,14 +678,19 @@ MICE_pred &lt;-<span class="st"> </span><span class="kw">predict</span>(rpart_mo
 <li>選擇哪些變數用以建模</li>
 </ul></li>
 <li>（其他）</li>
-<li>預測模型之建立</li>
+</ul></li>
+<li>預測模型之建立
+<ul>
 <li>使用哪些資料給電腦建模。<br /> 如果那些資料需要整理，又以那些方式填補NA</li>
 <li>使用哪個建模方式
 <ul>
 <li>決策樹（Decision tree）</li>
 <li>隨機森林模型（Random forest）</li>
-<li>（其他）</li>
+<li>（其他）
+<ul>
 <li>每個模型又各自有不同的變數可選擇…</li>
+</ul></li>
+</ul></li>
 </ul></li>
 </ul>
 <p>觀察KNN_Test與MICE_Test中Age在填補NA後，各項統計數值可推知兩者在本次整理資料後結果相似。而Age又是NA值最多、最可能影響資料結構在整理後之變數。所以或許由於此緣故，本次兩組資料整理方法的預測結果完全相同！<br /></p>
