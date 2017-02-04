@@ -626,7 +626,7 @@ MICE_pred &lt;-<span class="st"> </span><span class="kw">predict</span>(rpart_mo
 </div>
 <div id="上傳" class="section level2">
 <h2>4. 上傳</h2>
-<p>將預測結果結合原本KNN_Test與MICE_Test資料框內的PassengerId欄位，產生新資料框–「KNN_Test_Sur」及「MICE_Test_Sur」供上傳。</p>
+<p>將預測結果結合原本KNN_Test與MICE_Test資料框內的PassengerId欄位，產生新資料框–「KNN_Test_Sur」及「MICE_Test_Sur」。</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">KNN_Test_Sur &lt;-<span class="st"> </span><span class="kw">data.frame</span>(KNN_Test[, <span class="st">&quot;PassengerId&quot;</span>], KNN_pred)
 <span class="kw">names</span>(KNN_Test_Sur) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;PassengerId&quot;</span>, <span class="st">&quot;Survived&quot;</span>)
 <span class="kw">head</span>(KNN_Test_Sur, <span class="dt">n =</span> <span class="dv">10</span>)</code></pre></div>

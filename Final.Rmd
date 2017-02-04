@@ -234,7 +234,7 @@ head(MICE_pred,n = 10)
 
 ## 4. 上傳 
 
-將預測結果結合原本KNN_Test與MICE_Test資料框內的PassengerId欄位，產生新資料框--「KNN_Test_Sur」及「MICE_Test_Sur」供上傳。
+將預測結果結合原本KNN_Test與MICE_Test資料框內的PassengerId欄位，產生新資料框--「KNN_Test_Sur」及「MICE_Test_Sur」。
 
 ```{r merge,echo=TRUE,message=FALSE}
 KNN_Test_Sur <- data.frame(KNN_Test[, "PassengerId"], KNN_pred)
